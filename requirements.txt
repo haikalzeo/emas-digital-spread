@@ -1,0 +1,10 @@
+streamlit==1.38.0
+numpy
+cloudscraper
+beautifulsoup4
+pandas
+plotly
+pytz
+json
+requests
+datetime
