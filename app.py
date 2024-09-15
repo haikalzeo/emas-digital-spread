@@ -463,7 +463,7 @@ with st.container():
       st.header("_Emas_ _Digital_ Spread Across Platforms", divider="gray", anchor=False, help=None)
       st.plotly_chart(latest_fig,  use_container_width=True)
       with st.popover("See Explanation", use_container_width=True):
-        st.markdown("This chart shows the latest *Emas Digital* prices and spreads across platforms. Gold markers indicate buying prices, blue markers indicate selling prices, and lines show the spread. All data is collected through web scraping by utilizing APIs or specific data elements.")
+        st.markdown("This chart shows the latest *Emas Digital* prices and spreads across platforms. Gold markers indicate the buying prices, while blue markers represent the selling prices. The lines between these markers show the spread, which is the difference between the buying and selling prices. All the data presented in the chart is collected through web scraping, utilizing APIs and specific data elements.")
 
   with col2:
       with st.container():
@@ -480,7 +480,7 @@ with st.container():
             st.plotly_chart(treasury_fig,  use_container_width=True)
 
         with st.popover("See Explanation", use_container_width=True):
-          st.markdown("This chart shows the spread history over the last 4 years, except for Lakuemas, which only provides data for the past 3 months. Each tab represents a different platform, displaying their spread over time.  All data is collected through web scraping by utilizing APIs.")
+          st.markdown("This chart illustrates the spread history over the past four years for various platforms, with the exception of Lakuemas, which only provides data for the last three months. Each tab on the chart represents a different platform, showcasing their spread over time. All the data has been collected through web scraping, utilizing APIs.")
 
 with st.container():
     st.plotly_chart(combined_fig,  use_container_width=True)
@@ -488,7 +488,7 @@ with st.container():
 with st.container():
     footer = """
     <div style='text-align: center;'>
-        <p>Develop by <b>Haikal</b> | View source code on <a href="https://github.com/haikalzeo/emas-digital-spread">GitHub</a></p>
+        <p>Crafted by <b>haikalzeo</b></p>
     </div>
     """
     st.markdown(footer, unsafe_allow_html=True)
