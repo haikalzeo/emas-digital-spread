@@ -366,13 +366,11 @@ latest_spread_df = latest_spread_df.sort_values(by='Spread', ascending=False)
 # Create the dumbbell chart
 latest_fig = go.Figure()
 
-# Add Buy points with Spread text and custom hover info
+# Add Buy points
 latest_fig.add_trace(go.Scatter(
     x=latest_spread_df['Buy'], y=latest_spread_df['Platform'],
-    mode='markers+text',
+    mode='markers',
     marker=dict(size=20, color='gold'),
-    text=latest_spread_df['Spread'].round(3).astype(str) + '%',
-    textposition='middle right',
     customdata=latest_spread_df[['Date', 'Buy', 'Spread']],
     hovertemplate='<b>%{y}</b>'+
                 '<br>Date: %{customdata[0]|%b %d, %Y, %H:%M}'+
@@ -381,7 +379,7 @@ latest_fig.add_trace(go.Scatter(
     name='Buy'
 ))
 
-# Add Sell points with custom hover info
+# Add Sell points
 latest_fig.add_trace(go.Scatter(
     x=latest_spread_df['Sell'], y=latest_spread_df['Platform'],
     mode='markers',
@@ -394,12 +392,27 @@ latest_fig.add_trace(go.Scatter(
     name='Sell'
 ))
 
-# Add lines connecting the points
+# Add lines connecting the points and annotations for the spread text
 for i in range(latest_spread_df.shape[0]):
+    buy = latest_spread_df['Buy'][i]
+    sell = latest_spread_df['Sell'][i]
+    platform = latest_spread_df['Platform'][i]
+    spread = latest_spread_df['Spread'][i]
+    midpoint = (buy + sell) / 2
+    
     latest_fig.add_shape(type='line',
-                  x0=latest_spread_df['Buy'][i], y0=latest_spread_df['Platform'][i],
-                  x1=latest_spread_df['Sell'][i], y1=latest_spread_df['Platform'][i],
+                  x0=buy, y0=platform,
+                  x1=sell, y1=platform,
                   line=dict(color='rgb(255, 43, 43)', width=3))
+    
+    latest_fig.add_annotation(
+        x=midpoint, y=platform,
+        text=spread.round(2).astype(str) + '%',
+        showarrow=False,
+        font=dict(size=12, color='white'),
+        align='center',
+        yshift=10  # Adjust this value to move the text higher
+    )
 
 # Update layout for better aesthetics and add legend
 latest_fig.update_layout(
