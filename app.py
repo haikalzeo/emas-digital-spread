@@ -129,7 +129,7 @@ def plot_gold_spread(df, platform_name):
     )
 
     # Custom hover template
-    hover_template = '<b>Spread</b>: %{y}<br>' + \
+    hover_template = '<b>Spread</b>: %{y:.3f}%<br>' + \
                       '<b>Buy</b>: %{customdata[0]}<br>' + \
                       '<b>Sell</b>: %{customdata[1]}'
 
@@ -325,7 +325,7 @@ combined_fig = px.line(combined_df_sorted,
 
 # Customize the appearance and hover template
 combined_fig.update_traces(line=dict(width=3),
-                  hovertemplate='<br><b>Spread:</b> %{y}<br>' +
+                  hovertemplate='<br><b>Spread:</b> %{y:.3f}%<br>' +
                                 '<b>Buy:</b> %{customdata[0]}<br>' +
                                 '<b>Sell:</b> %{customdata[1]}')
 
@@ -397,7 +397,7 @@ for i in range(latest_spread_df.shape[0]):
     buy = latest_spread_df['Buy'][i]
     sell = latest_spread_df['Sell'][i]
     platform = latest_spread_df['Platform'][i]
-    spread = latest_spread_df['Spread'][i]
+    spread = f"{latest_spread_df['Spread'][i]:.3f}%"
     midpoint = (buy + sell) / 2
     
     latest_fig.add_shape(type='line',
@@ -407,7 +407,7 @@ for i in range(latest_spread_df.shape[0]):
     
     latest_fig.add_annotation(
         x=midpoint, y=platform,
-        text=spread.round(2).astype(str) + '%',
+        text=spread,
         showarrow=False,
         font=dict(size=12, color='white'),
         align='center',
