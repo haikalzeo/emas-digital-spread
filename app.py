@@ -500,7 +500,7 @@ with st.container():
       st.header("_Emas_ _Digital_ Spread Across Platforms", divider="gray", anchor=False, help=None)
       st.plotly_chart(latest_fig,  use_container_width=True)
       with st.popover("See Explanation", use_container_width=True):
-        st.markdown("This chart shows the latest *Emas Digital* prices and spreads across platforms. Gold markers indicate the buying prices, while blue markers represent the selling prices. The lines between these markers show the spread, which is the difference between the buying and selling prices. All the data presented in the chart is collected through web scraping, utilizing APIs and specific data elements.")
+        st.markdown("This chart shows the latest *Emas Digital* prices and spreads across platforms. Gold markers indicate the buying prices, while blue markers represent the selling prices. The lines between these markers show the spread, which is the difference between the buying and selling prices. All data presented in the chart is collected through web scraping and APIs.")
 
   with col2:
       with st.container():
@@ -517,7 +517,7 @@ with st.container():
             st.plotly_chart(treasury_fig,  use_container_width=True)
 
         with st.popover("See Explanation", use_container_width=True):
-          st.markdown("This chart illustrates the spread history over the past four years for various platforms, with the exception of Lakuemas, which only provides data for the last three months. Each tab on the chart represents a different platform, showcasing their spread over time. All the data has been collected through web scraping, utilizing APIs.")
+          st.markdown("This chart illustrates the spread history over the past four years for various platforms, with the exception of Lakuemas, which only provides data for the last three months. Each tab represents a different platform, showcasing their spread over time. All data presented is collected through APIs.")
 
 with st.container():
     st.plotly_chart(combined_fig,  use_container_width=True)
