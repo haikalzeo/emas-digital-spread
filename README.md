@@ -5,7 +5,9 @@ This project offers live data visualization of emas digital spreads across vario
 ## Dashboard App [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://emas-digital-spread.streamlit.app)
 The app features an interactive dashboard to visualizes live emas digital spreads and compares the latest buy and sell prices.
 
-<img src="https://github.com/haikalzeo/large-files/blob/main/demo-emas-digital-spread.gif" alt="Demo"></img>
+<a href="https://emas-digital-spread.streamlit.app" target="_blank">
+    <img src="https://github.com/haikalzeo/large-files/blob/main/demo-emas-digital-spread.gif" alt="Demo">
+</a>
 
 ## Data Sources
 This project gathers data through web scraping and APIs from the following platforms:
