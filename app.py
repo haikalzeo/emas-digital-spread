@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 import streamlit as st
 import plotly.graph_objects as go
+import concurrent.futures
 
 
 
@@ -143,9 +144,14 @@ def plot_gold_spread(df, platform_name):
 
     return fig
 
+def add_latest_and_plot(latest_spread_df, df, platform_name):
+    latest_spread_df = insert_latest_data(latest_spread_df, df)
+    fig = plot_gold_spread(df, platform_name)
+    return latest_spread_df, fig
 
 
-############ Get brankaslm latest data ############
+
+############ Get brankaslm current date data ############
 url = 'https://www.brankaslm.com/antam/simulation'
 # Use cloudscraper to bypass Cloudflare's anti-bot page
 scraper = cloudscraper.create_scraper()
@@ -169,140 +175,158 @@ latest_spread_df = insert_data(latest_spread_df, 'Brankaslm', buy, sell, date)
 
 
 
-############ Get pegadaian latest data ############
-interval_range = 4 * 365
-url = 'https://agata.pegadaian.co.id/public/webcorp/konven/pegadaian-api/fluktuasi-harga-emas?time_interval=' + str(interval_range)
-headers={'apikey':'c76d2050-f78a-43ea-a259-7d1b0a7a378f'}
-response = requests.get(url, headers=headers)
-data = json.loads(response.content)
+############ Fetch pegadaian data ############
+def fetch_pegadaian_data():
+    interval_range = 4 * 365
+    url = 'https://agata.pegadaian.co.id/public/webcorp/konven/pegadaian-api/fluktuasi-harga-emas?time_interval=' + str(interval_range)
+    headers={'apikey':'c76d2050-f78a-43ea-a259-7d1b0a7a378f'}
+    response = requests.get(url, headers=headers)
+    data = json.loads(response.content)
+    pegadaian_df = pd.DataFrame(columns=columns)
 
-# Get historical data
-for idx, day in enumerate(data['data']['priceList']):
-  buy = int(day['hargaJual']) * 100
-  sell = int(day['hargaBeli']) * 100
-  date = day['lastUpdate']
-  pegadaian_df = insert_data(pegadaian_df, 'Pegadaian', buy, sell, str(date), True)
-
-# Get the latest data
-latest_spread_df = insert_latest_data(latest_spread_df, pegadaian_df)
-
-# Get the plotting figure
-pegadaian_fig = plot_gold_spread(pegadaian_df, 'Pegadaian')
+    # Get historical data
+    for idx, day in enumerate(data['data']['priceList']):
+      buy = int(day['hargaJual']) * 100
+      sell = int(day['hargaBeli']) * 100
+      date = day['lastUpdate']
+      pegadaian_df = insert_data(pegadaian_df, 'Pegadaian', buy, sell, str(date), True)
+    
+    return pegadaian_df
 
 
 
-############ Get indogold data ############
-interval_range = 4 * 365
-urls = ['https://www.indogold.id/ajax/chart_interval/GOLD/', 'https://www.indogold.id/ajax/chart_interval_jual/GOLD/']
-
-# Get historical data
-buy_prices = []
-sell_prices = []
-for idx, url in enumerate(urls):
-  response = requests.post(url+str(interval_range))
-  data = json.loads(response.content)
-  for day in data[0]['data']:
-    if idx == 0:
-      buy_prices.append(day[1])
-    else:
-      sell_prices.append(day[1])
-
-for idx, (buy, sell) in enumerate(zip(buy_prices, sell_prices)):
-  date = format_datetime(datetime_jakarta - timedelta(days=interval_range-idx))
-  indogold_df = insert_data(indogold_df, 'Indogold', buy, sell, date, True)
-
-# Get the latest data
-latest_spread_df = insert_latest_data(latest_spread_df, indogold_df)
-
-# Get the plotting figure
-indogold_fig = plot_gold_spread(indogold_df, 'Indogold')
-
-
-
-############ Get lakuemas data ############
-url = 'https://www.lakuemas.com/api/harga/change_graph'
-body = {'length': '3mon'}
-response = requests.post(url, data=body)
-data = json.loads(response.content)
-
-# Get historical data
-for label, sell, buy in zip(data['data']['label'], data['data']['harga_beli'], data['data']['harga_jual']):
-  date = datetime.strptime(label, '%d %b %Y - %H:%M')
-  lakuemas_df = insert_data(lakuemas_df, 'Lakuemas', buy, sell, str(date), True)
-
-# Get the latest data
-latest_spread_df = insert_latest_data(latest_spread_df, lakuemas_df)
-
-# Get the plotting figure
-lakuemas_fig = plot_gold_spread(lakuemas_df, 'Lakuemas')
-
-
-
-############ Get pluang data ############
-interval_range = 4 * 365
-url = 'https://api-pluang.pluang.com/api/v3/asset/gold/pricing?daysLimit=' + str(interval_range)
-response = requests.get(url)
-data = json.loads(response.content)
-
-# Get historical data
-for idx, day in enumerate(data['data']['history']):
-  buy = day['sell']
-  sell = day['buy']
-  date = convert_to_jakarta_date(day['updated_at'])
-  pluang_df = insert_data(pluang_df, 'Pluang', buy, sell , date, True)
-
-# Get the latest data
-latest_spread_df = insert_latest_data(latest_spread_df, pluang_df)
-
-# Get the plotting figure
-pluang_fig = plot_gold_spread(pluang_df, 'Pluang')
-
-
-
-############ Get treasury data ############
-url = 'https://api.treasury.id/api/v1/antigrvty/gold/rate'
-rate_type = ['buying_rate', 'selling_rate']
-sell_prices = []
-buy_prices = []
-dates = []
-
-def fetch_tresury_data(start_date, end_date):
-    for rt in rate_type:
-      body = {'start_date': start_date, 'end_date': end_date, 'type': rt}
-      response = requests.post(url, data=body)
+############ Fetch indogold data ############
+def fetch_indogold_data():
+    interval_range = 4 * 365
+    urls = ['https://www.indogold.id/ajax/chart_interval/GOLD/', 'https://www.indogold.id/ajax/chart_interval_jual/GOLD/']
+    
+    indogold_df = pd.DataFrame(columns=columns)
+    buy_prices = []
+    sell_prices = []
+    # Get historical data
+    for idx, url in enumerate(urls):
+      response = requests.post(url+str(interval_range))
       data = json.loads(response.content)
-      for day in data['data']:
-          if rt == 'buying_rate':
-              buy_prices.append(day[rt])
-              dates.append(day['date'])
-          else:
-              sell_prices.append(day[rt])
+      for day in data[0]['data']:
+        if idx == 0:
+          buy_prices.append(day[1])
+        else:
+          sell_prices.append(day[1])
+
+    for idx, (buy, sell) in enumerate(zip(buy_prices, sell_prices)):
+      date = format_datetime(datetime_jakarta - timedelta(days=interval_range-idx))
+      indogold_df = insert_data(indogold_df, 'Indogold', buy, sell, date, True)
+    
+    return indogold_df
 
 
-# Loop through the date range in 1-year increments
-# This is necessary because the API returns incomplete data for periods longer than one year, skipping several days at a time.
-current_start_date = datetime_jakarta - timedelta(days=4 * 365)
-while current_start_date <= datetime_jakarta:
-    current_end_date = min(current_start_date + timedelta(days=365), datetime_jakarta)
-    fetch_tresury_data(current_start_date.strftime('%Y/%m/%d'), current_end_date.strftime('%Y/%m/%d'))
-    current_start_date = current_end_date + timedelta(days=1)  # Move to the next day after the current end date
 
-for date, buy, sell in zip(dates, buy_prices, sell_prices):
-  date_object = datetime.strptime(date, '%d %b %Y')
-  formatted_date = date_object.strftime('%Y-%m-%d %H:%M:%S')
-  treasury_df = insert_data(treasury_df, 'Treasury', buy, sell, str(formatted_date), True)
+############ Fetch lakuemas data ############
+def fetch_lakuemas_data():
+    url = 'https://www.lakuemas.com/api/harga/change_graph'
+    body = {'length': '3mon'}
+    response = requests.post(url, data=body)
+    data = json.loads(response.content)
+    lakuemas_df = pd.DataFrame(columns=columns)
 
-# Fetch the latest data
-# The previous API call does not provide the latest data
-response = requests.post(url)
-data = json.loads(response.content)['data']
-treasury_df = insert_data(treasury_df, 'Treasury', data['buying_rate'], data['selling_rate'], str(data['updated_at']), True)
+    # Get historical data
+    for label, sell, buy in zip(data['data']['label'], data['data']['harga_beli'], data['data']['harga_jual']):
+      date = datetime.strptime(label, '%d %b %Y - %H:%M')
+      lakuemas_df = insert_data(lakuemas_df, 'Lakuemas', buy, sell, str(date), True)
 
-# Get the latest data
-latest_spread_df = insert_latest_data(latest_spread_df, treasury_df)
+    return lakuemas_df
 
-# Get the plotting figure
-treasury_fig = plot_gold_spread(treasury_df, 'Treasury')
+
+
+############ Fetch pluang data ############
+def fetch_pluang_data():
+    interval_range = 4 * 365
+    url = 'https://api-pluang.pluang.com/api/v3/asset/gold/pricing?daysLimit=' + str(interval_range)
+    response = requests.get(url)
+    data = json.loads(response.content)
+    pluang_df = pd.DataFrame(columns=columns)
+    
+    # Get historical data
+    for idx, day in enumerate(data['data']['history']):
+      buy = day['sell']
+      sell = day['buy']
+      date = convert_to_jakarta_date(day['updated_at'])
+      pluang_df = insert_data(pluang_df, 'Pluang', buy, sell , date, True)
+
+    return pluang_df
+
+
+
+############ Fetch treasury data ############
+# Define the function to fetch data for a given date range
+def fetch_by_range(start_date, end_date, rate_type, url):
+    buy_prices = []
+    sell_prices = []
+    dates = []
+    for rt in rate_type:
+        body = {'start_date': start_date, 'end_date': end_date, 'type': rt}
+        response = requests.post(url, data=body)
+        data = json.loads(response.content)
+        for day in data['data']:
+            if rt == 'buying_rate':
+                buy_prices.append(day[rt])
+                dates.append(day['date'])
+            else:
+                sell_prices.append(day[rt])
+    return dates, buy_prices, sell_prices
+
+# Define the main function to fetch treasury data
+def fetch_treasury_data():
+    url = 'https://api.treasury.id/api/v1/antigrvty/gold/rate'
+    rate_type = ['buying_rate', 'selling_rate']
+    current_start_date = datetime_jakarta - timedelta(days=4 * 365)
+    futures = []
+
+    # Use ThreadPoolExecutor to fetch data by date range in 1-year
+    # This is necessary because the API returns incomplete data for periods longer than one year, skipping several days at a time.
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        while current_start_date <= datetime_jakarta:
+            current_end_date = min(current_start_date + timedelta(days=365), datetime_jakarta)
+            futures.append(executor.submit(fetch_by_range, current_start_date.strftime('%Y/%m/%d'), current_end_date.strftime('%Y/%m/%d'), rate_type, url))
+            current_start_date = current_end_date + timedelta(days=1)  # Move to the next day after the current end date
+
+        treasury_df = pd.DataFrame(columns=columns)
+        for future in concurrent.futures.as_completed(futures):
+            dates, buy_prices, sell_prices = future.result()
+            for date, buy, sell in zip(dates, buy_prices, sell_prices):
+                date_object = datetime.strptime(date, '%d %b %Y')
+                formatted_date = date_object.strftime('%Y-%m-%d %H:%M:%S')
+                treasury_df = insert_data(treasury_df, 'Treasury', buy, sell, str(formatted_date), True)
+
+    # Fetch the current date data
+    response = requests.post(url)
+    data = json.loads(response.content)['data']
+    treasury_df = insert_data(treasury_df, 'Treasury', data['buying_rate'], data['selling_rate'], str(data['updated_at']), True)
+
+    return treasury_df
+
+
+
+# Use ThreadPoolExecutor to fetch all data concurrently
+with concurrent.futures.ThreadPoolExecutor() as executor:
+    pegadaian_future = executor.submit(fetch_pegadaian_data)
+    indogold_future = executor.submit(fetch_indogold_data)
+    pluang_future = executor.submit(fetch_pluang_data)
+    treasury_future = executor.submit(fetch_treasury_data)
+    lakuemas_future = executor.submit(fetch_lakuemas_data)
+    
+    pegadaian_df = pegadaian_future.result()
+    indogold_df = indogold_future.result()
+    pluang_df = pluang_future.result()
+    treasury_df = treasury_future.result()
+    lakuemas_df = lakuemas_future.result()
+
+# add latest data and plot for each platform
+latest_spread_df, pegadaian_fig = add_latest_and_plot(latest_spread_df, pegadaian_df, 'Pegadaian')
+latest_spread_df, indogold_fig = add_latest_and_plot(latest_spread_df, indogold_df, 'Indogold')
+latest_spread_df, lakuemas_fig = add_latest_and_plot(latest_spread_df, lakuemas_df, 'Lakuemas')
+latest_spread_df, treasury_fig = add_latest_and_plot(latest_spread_df, treasury_df, 'Treasury')
+latest_spread_df, pluang_fig = add_latest_and_plot(latest_spread_df, pluang_df, 'Pluang')
 
 
 
